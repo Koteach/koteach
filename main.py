@@ -11,7 +11,7 @@ db_connection = connect()
 db = db_connection.cursor()
 
 @app.get("/")
-def root():
+def docs():
     return RedirectResponse(url='/docs')
 
 
