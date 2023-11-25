@@ -122,12 +122,35 @@ def delete_hagwon(id: int):
 
 
 @app.get("/hagwons", response_model=list[GetHagwonResponse])
-def get_hagwons(limit: int, page: int):
+def get_hagwons(limit: int, page: int, name: str | None = None, location: str | None = None):
     if page < 1:
         page = 1
     offset = limit * (page -1)
-    get_hagwons_query = "SELECT id, name, description, location, created_at, modified_at FROM hagwon LIMIT %s OFFSET %s"
+    get_hagwons_query = "SELECT * FROM hagwon"
+    if name:
+        get_hagwons_query += " WHERE lower(name) LIKE CONCAT(\"%\", %s, \"%\")"
+    if location:
+        if name:
+            get_hagwons_query += " AND"
+        else:
+            get_hagwons_query += " WHERE"
+        get_hagwons_query += " lower(location) LIKE CONCAT(\"%\", %s, \"%\")"
+
+    get_hagwons_query += " LIMIT %s OFFSET %s"
+
+
     values = (limit, offset)
+
+    if location:
+        values = list(values)
+        values.insert(0, location.lower())
+        values = tuple(values)
+
+    if name:
+        values = list(values)
+        values.insert(0, name.lower())
+        values = tuple(values)
+        
     db.execute(get_hagwons_query, values)
 
     hagwons = database_hagwon_to_get_hagwon_response(db.fetchall())
@@ -212,7 +235,7 @@ class DeleteReviewResponse(BaseModel):
 
 
 @app.delete("/review", response_model=DeleteReviewResponse)
-def delete_reviews(id: int):
+def delete_review(id: int):
     if not id:
          raise HTTPException(status_code=400, detail="ID required")
 
