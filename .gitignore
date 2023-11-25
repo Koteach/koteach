@@ -1,3 +1,4 @@
 stdout.log
 __pycache__/
+*.pyc
 koteach.log
