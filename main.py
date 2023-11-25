@@ -46,6 +46,7 @@ class GetHagwonResponse(BaseModel):
     name: str
     description: str
     location: str
+    average_rating: float | None
     created_at: datetime
     modified_at: datetime
 
@@ -59,7 +60,14 @@ def get_hagwon(id: int):
     values = (id, )
     db.execute(get_hagwon_query, values)
 
-    hagwon = database_hagwon_to_get_hagwon_response(db.fetchall())[0]
+    result = db.fetchall()
+
+    if db.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Hagwon not found")
+
+    hagwon = database_hagwon_to_get_hagwon_response(result)[0]
+
+    hagwon["average_rating"] = get_hagwon_rating(id)
 
     return hagwon
 
@@ -71,10 +79,25 @@ def database_hagwon_to_get_hagwon_response(rows):
             "name": row[1],
             "description": row[2],
             "location": row[3],
+            "average_rating": None,
             "created_at": row[4],
             "modified_at": row[5]
         })
     return response
+
+
+def get_hagwon_rating(id: int):
+
+    get_hagwon_average_rating_query = "SELECT AVG (rating) FROM hagwon_review WHERE hagwon_id = %s"
+    values = (id, )
+    db.execute(get_hagwon_average_rating_query, values)
+
+    result = db.fetchone()
+
+    if db.rowcount == 0:
+        return None
+
+    return result[0]
 
 
 
@@ -158,7 +181,12 @@ def get_review(id: int):
     values = (id, )
     db.execute(get_review_query, values)
 
-    hagwon = database_review_to_get_review_response(db.fetchall())[0]
+    result = db.fetchall()
+
+    if db.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Hagwon not found")
+
+    hagwon = database_review_to_get_review_response(result)[0]
 
     return hagwon
 
