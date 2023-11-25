@@ -150,7 +150,7 @@ class GetReviewResponse(BaseModel):
 
 
 @app.get("/review", response_model=GetReviewResponse)
-def get_hagwon(id: int):
+def get_review(id: int):
     if not id:
          raise HTTPException(status_code=400, detail="ID required")
 
