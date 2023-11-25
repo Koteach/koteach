@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from datetime import datetime
 from database import connect
 from pydantic import BaseModel
@@ -11,7 +12,7 @@ db = db_connection.cursor()
 
 @app.get("/")
 def root():
-    return "Welcome to Koteach"
+    return RedirectResponse(url='/docs')
 
 
 class CreateHagwonRequest(BaseModel):
