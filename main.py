@@ -101,9 +101,12 @@ def delete_hagwon(id: int):
 
 
 @app.get("/hagwons", response_model=list[GetHagwonResponse])
-def get_hagwons(limit: int):
-    get_hagwons_query = "SELECT id, name, description, location, created_at, modified_at FROM hagwon LIMIT %s"
-    values = (limit, )
+def get_hagwons(limit: int, page: int):
+    if page < 1:
+        page = 1
+    offset = limit * (page -1)
+    get_hagwons_query = "SELECT id, name, description, location, created_at, modified_at FROM hagwon LIMIT %s OFFSET %s"
+    values = (limit, offset)
     db.execute(get_hagwons_query, values)
 
     hagwons = database_hagwon_to_get_hagwon_response(db.fetchall())
