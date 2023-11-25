@@ -276,3 +276,36 @@ def get_reviews(hagwon_id: int, limit: int, page: int, content: str | None = Non
     reviews = database_review_to_get_review_response(db.fetchall())
 
     return reviews
+
+
+class TaxResponse(BaseModel):
+    personal_tax: int
+    local_tax: int
+    
+
+@app.get("/tax", response_model=TaxResponse)
+def get_tax(monthly_income: int):
+     personal_tax = get_tax(monthly_income)
+     local_tax = personal_tax/10
+     return {"personal_tax": personal_tax, "local_tax": local_tax}
+
+# source = https://taxsummaries.pwc.com/republic-of-korea/individual/taxes-on-personal-income
+def get_tax(monthly_income):
+	if monthly_income < 1:
+		return 0
+	annual = monthly_income * 12
+	if annual < 14000000:
+		return annual * 0.06
+	if annual < 50000000:
+		return 840000 + ((annual - 14000000) * 0.15) 
+	if annual < 88000000:
+		return 6240000 + ((annual - 50000000) * 0.24)
+	if annual < 150000000:
+		return 15360000 + ((annual - 88000000) * 0.35)
+	if annual < 300000000:
+		return 37060000 + ((annual - 150000000) * 0.38)
+	if annual < 500000000:
+		return 94060000 + ((annual - 300000000) * 0.40)
+	if annual < 1000000000:
+		return 174060000 + (annual - 500000000 * 0.42)
+	return 384060000 + ((annual - 1000000000) * 0.45)
