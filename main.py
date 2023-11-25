@@ -250,12 +250,27 @@ def delete_review(id: int):
 
 
 @app.get("/reviews", response_model=list[GetReviewResponse])
-def get_reviews(hagwon_id: int, limit: int, page: int):
+def get_reviews(hagwon_id: int, limit: int, page: int, content: str | None = None):
     if page < 1:
         page = 1
     offset = limit * (page -1)
-    get_reviews_query = "SELECT * FROM hagwon_review WHERE hagwon_id = %s LIMIT %s OFFSET %s"
+
+
+    get_reviews_query = "SELECT * FROM hagwon_review WHERE hagwon_id = %s"
+    if content:
+        get_reviews_query += " AND lower(title) LIKE CONCAT(\"%\", %s, \"%\") OR lower(content) LIKE CONCAT(\"%\", %s, \"%\")"
+
+    get_reviews_query += " LIMIT %s OFFSET %s"
+
+
     values = (hagwon_id, limit, offset)
+
+    if content:
+        values = list(values)
+        values.insert(1, content.lower())
+        values.insert(1, content.lower())
+        values = tuple(values)
+        
     db.execute(get_reviews_query, values)
 
     reviews = database_review_to_get_review_response(db.fetchall())
