@@ -148,7 +148,7 @@ def get_hagwons(limit: int, page: int, name: str | None = None, location: str | 
             get_hagwons_query += " WHERE"
         get_hagwons_query += " lower(location) LIKE CONCAT(\"%\", %s, \"%\")"
 
-    get_hagwons_query += " LIMIT %s OFFSET %s"
+    get_hagwons_query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
 
 
     values = (limit, offset)
