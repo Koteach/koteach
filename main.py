@@ -274,7 +274,7 @@ def get_reviews(hagwon_id: int, limit: int, page: int, content: str | None = Non
     if content:
         get_reviews_query += " AND lower(title) LIKE CONCAT(\"%\", %s, \"%\") OR lower(content) LIKE CONCAT(\"%\", %s, \"%\")"
 
-    get_reviews_query += " LIMIT %s OFFSET %s"
+    get_reviews_query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
 
 
     values = (hagwon_id, limit, offset)
