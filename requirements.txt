@@ -4,3 +4,6 @@ types-redis
 uvicorn
 mysql-connector-python
 python-dotenv
+numpy
+openai
+pandas

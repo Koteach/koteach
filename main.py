@@ -3,12 +3,22 @@ from fastapi.responses import RedirectResponse
 from datetime import datetime
 from database import connect
 from pydantic import BaseModel
+import numpy as np
+from ast import literal_eval
+from openai import OpenAI
+import os
+import pandas as pd
 
 app = FastAPI()
 
 
 db_connection = connect()
 db = db_connection.cursor()
+
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.get("/")
 def docs():
@@ -61,6 +71,7 @@ def get_hagwon(id: int):
     db.execute(get_hagwon_query, values)
 
     result = db.fetchall()
+    db_connection.commit()
 
     if db.rowcount == 0:
         raise HTTPException(status_code=404, detail="Hagwon not found")
@@ -93,6 +104,7 @@ def get_hagwon_rating(id: int):
     db.execute(get_hagwon_average_rating_query, values)
 
     result = db.fetchone()
+    db_connection.commit()
 
     if db.rowcount == 0:
         return None
@@ -154,6 +166,7 @@ def get_hagwons(limit: int, page: int, name: str | None = None, location: str | 
     db.execute(get_hagwons_query, values)
 
     hagwons = database_hagwon_to_get_hagwon_response(db.fetchall())
+    db_connection.commit()
 
     return hagwons
 
@@ -205,6 +218,7 @@ def get_review(id: int):
     db.execute(get_review_query, values)
 
     result = db.fetchall()
+    db_connection.commit()
 
     if db.rowcount == 0:
         raise HTTPException(status_code=404, detail="Hagwon not found")
@@ -274,5 +288,67 @@ def get_reviews(hagwon_id: int, limit: int, page: int, content: str | None = Non
     db.execute(get_reviews_query, values)
 
     reviews = database_review_to_get_review_response(db.fetchall())
+    db_connection.commit()
 
     return reviews
+
+
+class QuestionResponse(BaseModel):
+    answer: str
+
+@app.get("/answer", response_model=QuestionResponse)
+def get_answer(question: str):
+    relevant_chunks = search_legal(question, pprint=False)
+    answer = ask_question(question, relevant_chunks)
+    return {"answer": answer.content}
+
+
+# See https://cookbook.openai.com/examples/semantic_text_search_using_embeddings
+def search_legal(question, n=15, pprint=True):
+    embeddings_path = "documents/combined_with_embeddings.csv"
+    df = pd.read_csv(embeddings_path)
+    df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
+    product_embedding = get_embedding(
+        question,
+        model="text-embedding-ada-002"
+    )
+    df["similarity"] = df.embedding.apply(lambda x: cosine_similarity(x, product_embedding))
+
+    results = (
+        df.sort_values("similarity", ascending=False)
+        .head(n)
+        .text
+    )
+
+    relevant_chunks = []
+    for r in results:
+        relevant_chunks.append(r)
+    
+    if pprint:
+        for r in results:
+            print(r[:200])
+            print()
+
+    return relevant_chunks
+
+   
+def get_embedding(text, model="text-embedding-ada-002"):
+    text = text.replace("\n", " ")
+    return client.embeddings.create(input = [text], model=model).data[0].embedding 
+    
+
+# https://github.com/openai/openai-cookbook/blob/main/examples/utils/embeddings_utils.py
+def cosine_similarity(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    
+    
+def ask_question(question, relevant_chunks):
+    completion = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a legal assistant, skilled in explaining complex legal issues regarding employment and immigration in South Korea in a simple and understandable way. Do not mention that context was given."},
+                {"role": "user", "content": "Using the context given below, answer this question: " + question + "\n" + "\n".join(relevant_chunks)}
+            ]
+        )      
+
+    return completion.choices[0].message
