@@ -295,12 +295,13 @@ def get_reviews(hagwon_id: int, limit: int, page: int, content: str | None = Non
 
 class QuestionResponse(BaseModel):
     answer: str
+    time: datetime
 
 @app.get("/answer", response_model=QuestionResponse)
 def get_answer(question: str):
     relevant_chunks = search_legal(question, pprint=False)
     answer = ask_question(question, relevant_chunks)
-    return {"answer": answer.content}
+    return {"answer": answer.content, "time": datetime.now()}
 
 
 # See https://cookbook.openai.com/examples/semantic_text_search_using_embeddings
