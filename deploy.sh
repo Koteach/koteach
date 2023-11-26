@@ -3,5 +3,6 @@ ssh -i "../../koteach.pem" ubuntu@ec2-18-133-26-124.eu-west-2.compute.amazonaws.
   sudo pkill gunicorn
   git fetch
   git reset --hard origin/main
+  sudo python3 -m pip install -r requirements.txt
   sudo gunicorn main:app --workers 3 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80 --reload --daemon --log-file koteach.log --access-logfile="koteach.log"
 EOF
